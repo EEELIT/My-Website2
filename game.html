@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Shooter Game</title>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #222;
+            overflow: hidden;
+        }
+
+        canvas {
+            border: 2px solid #fff;
+            background-color: #333;
+        }
+
+        .back-link {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            text-decoration: none;
+            font-size: 18px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 5px 10px;
+            border-radius: 5px;
+        }
+
+        .back-link:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: white;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 14px;
+            text-align: left;
+        }
+
+        .controls h3 {
+            margin: 0 0 5px 0;
+            font-size: 16px;
+        }
+
+        .controls p {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-link" id="backLink">Back</a>
+    <div class="controls">
+        <h3>Controls</h3>
+        <p><strong>Arrow Left:</strong> Move Left</p>
+        <p><strong>Arrow Right:</strong> Move Right</p>
+        <p><strong>Space:</strong> Shoot</p>
+    </div>
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const backLink = document.getElementById('backLink');
+
+        // Set your desired link here
+        backLink.href = "index.html";
+
+        canvas.width = 800;
+        canvas.height = 600;
+
+        let timer = 0;
+        let lives = 3;
+        let shotsFired = 0;
+
+        const keys = {};
+
+        const player = {
+            x: canvas.width / 2 - 25,
+            y: canvas.height - 50,
+            width: 50,
+            height: 20,
+            speed: 10, // Reduced base speed
+            bullets: [],
+
+            draw() {
+                ctx.fillStyle = 'lime';
+                ctx.fillRect(this.x, this.y, this.width, this.height);
+            },
+
+            shoot() {
+                this.bullets.push({ x: this.x + this.width / 2 - 5, y: this.y, width: 10, height: 20 });
+                shotsFired++;
+            },
+
+            update() {
+                if (keys['ArrowLeft'] && this.x > 0) this.x -= this.speed;
+                if (keys['ArrowRight'] && this.x + this.width < canvas.width) this.x += this.speed;
+
+                this.bullets = this.bullets.filter(bullet => bullet.y + bullet.height > 0);
+                this.bullets.forEach(bullet => {
+                    bullet.y -= 10;
+                    ctx.fillStyle = 'yellow';
+                    ctx.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
+                });
+            }
+        };
+
+        const enemies = [];
+
+        function createEnemy() {
+            const size = 40;
+            const x = Math.random() * (canvas.width - size);
+            enemies.push({ x, y: 0, width: size, height: size });
+        }
+
+        function updateEnemies() {
+            enemies.forEach(enemy => {
+                enemy.y += 2;
+                ctx.fillStyle = 'red';
+                ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
+            });
+
+            enemies.forEach((enemy, i) => {
+                player.bullets.forEach((bullet, j) => {
+                    if (
+                        bullet.x < enemy.x + enemy.width &&
+                        bullet.x + bullet.width > enemy.x &&
+                        bullet.y < enemy.y + enemy.height &&
+                        bullet.y + bullet.height > enemy.y
+                    ) {
+                        enemies.splice(i, 1);
+                        player.bullets.splice(j, 1);
+                    }
+                });
+
+                if (enemy.y > canvas.height) {
+                    enemies.splice(i, 1);
+                    lives--;
+                    if (lives <= 0) {
+                        alert(`Game Over! Time: ${timer}s, Shots Fired: ${shotsFired}`);
+                        document.location.reload();
+                    }
+                }
+            });
+        }
+
+        function drawHUD() {
+            ctx.fillStyle = 'white';
+            ctx.font = '20px Arial';
+            ctx.fillText(`Time: ${timer}s`, 10, 20);
+            ctx.fillText(`Lives: ${lives}`, 10, 50);
+            ctx.fillText(`Shots Fired: ${shotsFired}`, 10, 80);
+        }
+
+        function gameLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            player.update();
+            player.draw();
+
+            updateEnemies();
+
+            drawHUD();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        document.addEventListener('keydown', (e) => {
+            keys[e.code] = true;
+            if (e.code === 'Space') player.shoot();
+        });
+
+        document.addEventListener('keyup', (e) => {
+            keys[e.code] = false;
+        });
+
+        setInterval(() => {
+            timer++;
+            if (timer % 10 === 0) player.speed += 3; // Slower speed increment every 10 seconds
+        }, 1000);
+
+        setInterval(createEnemy, 1000);
+        gameLoop();
+    </script>
+</body>
+</html>
